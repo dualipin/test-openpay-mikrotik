@@ -115,11 +115,11 @@ const createHotspotUser = async (username: string, password: string, duration: n
 		const minutes = duration % 60
 		const uptime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
 
-		await mikrotikClient.post('/ip/hotspot/users', {
+		await mikrotikClient.post('/ip/hotspot-user', {
 			name: username,
 			password,
 			profile: 'default',
-			disabled: 'no',
+			disabled: false,
 			'limit-uptime': uptime
 		})
 
