@@ -1,0 +1,18 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+		"paths": {
+			"@/*": ["./src/*"]
+		},
+		"outDir": "dist",
+		"importsNotUsedAsValues": "remove",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"rootDir": "src"
+  },
+  "include": [
+    "src/**/*"
+  ],
+}
