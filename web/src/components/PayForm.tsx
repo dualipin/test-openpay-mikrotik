@@ -188,27 +188,15 @@ export default function PayForm(): React.ReactElement {
     }
   }
 
-  async function autoLoginMikrotik(username: string, password: string) {
+  function autoLoginMikrotik(username: string, password: string) {
     const loginUrl = import.meta.env.VITE_MIKROTIK_LOGIN_URL || DEFAULT_MIKROTIK_LOGIN_URL
+    const hotspotUrl = new URL(loginUrl)
 
-    try {
-      await fetch(loginUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-          username,
-          password,
-          dst: 'https://www.google.com'
-        })
-      })
+    hotspotUrl.searchParams.append('username', username)
+    hotspotUrl.searchParams.append('password', password)
+    hotspotUrl.searchParams.append('dst', 'https://www.google.com')
 
-      window.location.href = 'https://www.google.com'
-    } catch (error) {
-      console.error('Error en el auto-login:', error)
-    }
+    window.location.href = hotspotUrl.toString()
   }
 
   async function sendPaymentToBackend(tokenId: string) {
