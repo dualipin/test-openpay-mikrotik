@@ -4,7 +4,7 @@ import { z } from 'zod'
 dotenv.config()
 
 const schema = z.object({
-    PORT: z.number().optional().default(3000),
+    PORT: z.coerce.number().optional().default(3000),
     OPENPAY_PRIVATE_API_KEY: z.string(),
     OPENPAY_MERCHANT_ID: z.string(),
     OPENPAY_URI: z.string(),
