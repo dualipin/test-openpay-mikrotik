@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 interface InternetPlan {
   id: string
@@ -33,6 +33,8 @@ const INTERNET_PLANS: InternetPlan[] = [
   { id: 'plan_15m', duration: 15, price: 20, label: '15 Minutos' }
 ]
 
+const DEFAULT_MIKROTIK_LOGIN_URL = 'http://internet.online/login'
+
 export default function PayForm(): React.ReactElement {
   const [deviceSessionId, setDeviceSessionId] = useState<string>('')
   const [isOpenPayReady, setIsOpenPayReady] = useState<boolean>(false)
@@ -42,6 +44,9 @@ export default function PayForm(): React.ReactElement {
   const [card, setCard] = useState<CardData>({ holderName: '', cardNumber: '', expirationMonth: '', expirationYear: '', cvv2: '' })
   const [selectedPlan, setSelectedPlan] = useState<InternetPlan | null>(null)
   const [userCreds, setUserCreds] = useState<Credentials | null>(null)
+  const [autoLoginCountdown, setAutoLoginCountdown] = useState<number | null>(null)
+  const autoLoginTimeoutRef = useRef<number | null>(null)
+  const autoLoginIntervalRef = useRef<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -110,6 +115,17 @@ export default function PayForm(): React.ReactElement {
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (autoLoginTimeoutRef.current !== null) {
+        window.clearTimeout(autoLoginTimeoutRef.current)
+      }
+      if (autoLoginIntervalRef.current !== null) {
+        window.clearInterval(autoLoginIntervalRef.current)
+      }
+    }
+  }, [])
+
   function handlePayment(e: React.FormEvent) {
     e.preventDefault()
 
@@ -161,6 +177,39 @@ export default function PayForm(): React.ReactElement {
     )
   }
 
+  function clearAutoLoginTimers() {
+    if (autoLoginTimeoutRef.current !== null) {
+      window.clearTimeout(autoLoginTimeoutRef.current)
+      autoLoginTimeoutRef.current = null
+    }
+    if (autoLoginIntervalRef.current !== null) {
+      window.clearInterval(autoLoginIntervalRef.current)
+      autoLoginIntervalRef.current = null
+    }
+  }
+
+  function autoLoginMikrotik(username: string, password: string) {
+    const loginUrl = import.meta.env.VITE_MIKROTIK_LOGIN_URL || DEFAULT_MIKROTIK_LOGIN_URL
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = loginUrl
+
+    const userField = document.createElement('input')
+    userField.type = 'hidden'
+    userField.name = 'username'
+    userField.value = username
+
+    const passField = document.createElement('input')
+    passField.type = 'hidden'
+    passField.name = 'password'
+    passField.value = password
+
+    form.appendChild(userField)
+    form.appendChild(passField)
+    document.body.appendChild(form)
+    form.submit()
+  }
+
   async function sendPaymentToBackend(tokenId: string) {
     try {
       const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -190,6 +239,30 @@ export default function PayForm(): React.ReactElement {
       if (response.ok && data.success) {
         setMessage({ type: 'success', text: '¡Pago exitoso! Se han generado tus credenciales' })
         setUserCreds(data.credentials as Credentials)
+
+        const creds = data.credentials as Credentials
+        clearAutoLoginTimers()
+        const countdownSeconds = 3
+        let remainingSeconds = countdownSeconds
+        setAutoLoginCountdown(remainingSeconds)
+
+        autoLoginIntervalRef.current = window.setInterval(() => {
+          remainingSeconds -= 1
+          if (remainingSeconds <= 0) {
+            setAutoLoginCountdown(null)
+            if (autoLoginIntervalRef.current !== null) {
+              window.clearInterval(autoLoginIntervalRef.current)
+              autoLoginIntervalRef.current = null
+            }
+            return
+          }
+
+          setAutoLoginCountdown(remainingSeconds)
+        }, 1000)
+
+        autoLoginTimeoutRef.current = window.setTimeout(() => {
+          autoLoginMikrotik(creds.username, creds.password)
+        }, countdownSeconds * 1000)
 
         const form = document.getElementById('payment-form') as HTMLFormElement | null
         form?.reset()
@@ -227,7 +300,10 @@ export default function PayForm(): React.ReactElement {
                   <div className="card"><div className="card-body"><p className="text-sm">Válido hasta</p><p>{userCreds.expiresAt}</p></div></div>
                 </div>
                 <div className="alert alert-info mt-4"><p>El acceso se activa inmediatamente. Accede con estas credenciales en el portal cautivo.</p></div>
-                <button onClick={() => { setUserCreds(null); setSelectedPlan(null) }} className="btn btn-primary mt-4">Comprar otro plan</button>
+                {autoLoginCountdown !== null && (
+                  <p className="text-sm mt-2">Auto-login en {autoLoginCountdown} segundos...</p>
+                )}
+                <button onClick={() => { clearAutoLoginTimers(); setAutoLoginCountdown(null); setUserCreds(null); setSelectedPlan(null) }} className="btn btn-primary mt-4">Comprar otro plan</button>
               </div>
             ) : (
               <>

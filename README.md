@@ -65,6 +65,7 @@ VITE_OPENPAY_MERCHANT_ID=tu_merchant_id
 VITE_OPENPAY_PUBLIC_KEY=tu_clave_publica
 VITE_OPENPAY_PRODUCTION=false
 VITE_API_URL=http://localhost:3000
+VITE_MIKROTIK_LOGIN_URL=http://internet.online/login
 ```
 
 ### 3. Instalar dependencias
