@@ -111,12 +111,16 @@ const createHotspotUser = async (username: string, password: string, duration: n
 		const expiryDate = new Date()
 		expiryDate.setMinutes(expiryDate.getMinutes() + duration)
 
-		await mikrotikClient.post('/ip/hotspot/user/', {
+		const hours = Math.floor(duration / 60)
+		const minutes = duration % 60
+		const uptime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
+
+		await mikrotikClient.post('/ip/hotspot/user', {
 			name: username,
 			password,
 			profile: 'default',
 			disabled: false,
-			'limit-uptime': String(duration * 60)
+			'limit-uptime': uptime
 		})
 
 		console.log(`Usuario Hotspot creado via REST: ${username}`)
