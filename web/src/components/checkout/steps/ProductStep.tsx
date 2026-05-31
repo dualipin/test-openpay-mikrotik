@@ -14,13 +14,13 @@ export default function ProductStep({ checkout }: ProductStepProps) {
           <p className="text-sm opacity-70">Elige el paquete y confirma para pasar a tus datos.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pr-1">
           {INTERNET_PLANS.map((plan) => (
             <button
               key={plan.id}
               type="button"
               onClick={() => checkout.selectPlan(plan)}
-              className={`card border text-left transition-all hover:scale-[1.01] ${checkout.selectedPlan?.id === plan.id ? 'border-primary bg-primary/10 shadow-md' : 'border-base-300 bg-base-100'}`}
+              className={`card border text-left transition-all hover:brightness-150 ${checkout.selectedPlan?.id === plan.id ? 'border-primary bg-primary/10 shadow-md' : 'border-base-300 bg-base-100'}`}
             >
               <div className="card-body gap-2 p-4">
                 <div className="flex items-center justify-between gap-2">
