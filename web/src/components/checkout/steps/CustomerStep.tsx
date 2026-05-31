@@ -8,11 +8,10 @@ interface CustomerStepProps {
 export default function CustomerStep({ checkout }: CustomerStepProps) {
   return (
     <form className="flex h-full flex-col justify-between gap-4" onSubmit={checkout.continueFromCustomer}>
-      <div className="space-y-4 overflow-y-auto pr-1">
+      <div className="space-y-4 overflow-y-auto pr-1 flex flex-col">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold md:text-xl">Datos del titular</h2>
-            <p className="text-sm opacity-70">Validamos tu identidad antes de cobrar.</p>
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => checkout.setStep(1)}>
             Volver
