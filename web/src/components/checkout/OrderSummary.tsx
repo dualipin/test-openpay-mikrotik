@@ -46,11 +46,11 @@ export default function OrderSummary({ checkout }: OrderSummaryProps) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-base-300 bg-base-100 p-4">
+        {/* <div className="rounded-xl border border-base-300 bg-base-100 p-4">
           <p className="text-sm font-semibold">Soporte rápido</p>
           <p className="mt-2 text-sm opacity-75">Si tienes un problema durante el pago, te ayudamos en menos de 5 minutos.</p>
           <button type="button" className="btn btn-outline btn-sm mt-3 w-full">Contactar soporte</button>
-        </div>
+        </div> */}
       </div>
 
       <button type="button" className="btn btn-primary mt-4 md:hidden" onClick={() => checkout.setMobilePanel('flow')}>
