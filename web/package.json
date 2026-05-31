@@ -12,8 +12,10 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "axios": "^1.16.0",
+    "framer-motion": "^12.40.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-imask": "^7.6.1",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
