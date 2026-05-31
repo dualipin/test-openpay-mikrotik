@@ -1,8 +1,8 @@
-import PayForm from './components/PayForm'
+import CheckoutLayout from './components/checkout/CheckoutLayout'
 
 function App() {
   return (
-    <PayForm />
+    <CheckoutLayout />
   )
 }
 
