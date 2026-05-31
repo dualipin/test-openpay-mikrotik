@@ -360,7 +360,7 @@ export default function PayForm(): React.ReactElement {
   const transition = { duration: 0.22, ease: 'easeOut' as const }
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(17,130,148,0.22),_transparent_56%),linear-gradient(160deg,_rgba(245,252,255,1)_0%,_rgba(237,246,251,1)_42%,_rgba(250,251,244,1)_100%)] p-3 md:p-5">
+    <div className="h-dvh overflow-hidden p-3 md:p-5">
       <form id="payment-form" className="hidden">
         <input type="hidden" name="deviceIdHiddenFieldName" />
       </form>
