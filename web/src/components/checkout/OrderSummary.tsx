@@ -27,12 +27,8 @@ export default function OrderSummary({ checkout }: OrderSummaryProps) {
 
         <div className="rounded-xl border border-base-300 bg-base-100 p-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="opacity-70">Subtotal</span>
+            <span className="opacity-70">Precio neto</span>
             <span className="font-medium">{checkout.formatMoney(checkout.subtotal)}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between text-sm">
-            <span className="opacity-70">IVA (16%)</span>
-            <span className="font-medium">{checkout.formatMoney(checkout.tax)}</span>
           </div>
           <div className="my-3 h-px bg-base-300"></div>
           <div className="flex items-center justify-between">

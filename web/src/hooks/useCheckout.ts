@@ -26,7 +26,6 @@ export interface CheckoutController {
   userCreds: Credentials | null
   autoLoginCountdown: number | null
   subtotal: number
-  tax: number
   total: number
   emailValid: boolean
   phoneValid: boolean
@@ -67,8 +66,7 @@ export function useCheckout(): CheckoutController {
   const autoLoginIntervalRef = useRef<number | null>(null)
 
   const subtotal = selectedPlan?.price ?? 0
-  const tax = useMemo(() => Number((subtotal * 0.16).toFixed(2)), [subtotal])
-  const total = useMemo(() => Number((subtotal + tax).toFixed(2)), [subtotal, tax])
+  const total = useMemo(() => subtotal, [subtotal])
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email.trim())
   const phoneDigits = customer.phone.replace(/\D/g, '')
@@ -412,7 +410,6 @@ export function useCheckout(): CheckoutController {
     userCreds,
     autoLoginCountdown,
     subtotal,
-    tax,
     total,
     emailValid,
     phoneValid,

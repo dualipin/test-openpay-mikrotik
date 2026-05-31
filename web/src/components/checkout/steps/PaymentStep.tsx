@@ -27,14 +27,14 @@ export default function PaymentStep({ checkout }: PaymentStepProps) {
             <span className="text-sm font-semibold">Tarjeta</span>
             <span className="text-xs font-normal">Crédito o débito</span>
           </button>
-          <button type="button" className={`btn h-auto flex-col py-3 text-left ${checkout.paymentMethod === 'cash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => checkout.choosePaymentMethod('cash')}>
+          {/* <button type="button" className={`btn h-auto flex-col py-3 text-left ${checkout.paymentMethod === 'cash' ? 'btn-primary' : 'btn-outline'}`} onClick={() => checkout.choosePaymentMethod('cash')}>
             <span className="text-sm font-semibold">Efectivo</span>
             <span className="text-xs font-normal">OXXO / tiendas</span>
           </button>
           <button type="button" className={`btn h-auto flex-col py-3 text-left ${checkout.paymentMethod === 'spei' ? 'btn-primary' : 'btn-outline'}`} onClick={() => checkout.choosePaymentMethod('spei')}>
             <span className="text-sm font-semibold">Transferencia</span>
             <span className="text-xs font-normal">SPEI</span>
-          </button>
+          </button> */}
         </div>
 
         <AnimatePresence mode="wait">
