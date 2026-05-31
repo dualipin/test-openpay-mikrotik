@@ -113,8 +113,9 @@ export default function CheckoutLayout() {
           {checkout.isLoading && (
             <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-base-300/45 backdrop-blur-sm">
               <div className="rounded-xl border border-base-100/60 bg-base-100/95 px-6 py-5 text-center shadow-xl">
-                <span className="loading loading-spinner loading-lg text-primary"></span>
+                {/* <span className="loading loading-spinner loading-lg text-primary"></span> */}
                 <p className="mt-3 text-sm font-medium">Procesando pago, no cierres esta pantalla.</p>
+                <span className='loading loading-dots loading-lg mt-3'></span>
               </div>
             </div>
           )}
