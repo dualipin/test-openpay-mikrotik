@@ -35,9 +35,9 @@ export type CheckoutMessage = {
 } | null
 
 export const INTERNET_PLANS: InternetPlan[] = [
-  { id: 'plan_5m', duration: 5, price: 10, label: '5 Minutos' },
-  { id: 'plan_10m', duration: 10, price: 15, label: '10 Minutos' },
-  { id: 'plan_15m', duration: 15, price: 20, label: '15 Minutos' },
+  { id: 'plan_1m', duration: 1, price: 10, label: '1 Minuto' },
+  { id: 'plan_2m', duration: 2, price: 15, label: '2 Minutos' },
+  { id: 'plan_3m', duration: 3, price: 20, label: '3 Minutos' },
 ]
 
 export const DEFAULT_MIKROTIK_LOGIN_URL = 'http://internet.online/login'
