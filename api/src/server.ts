@@ -148,12 +148,12 @@ const createHotspotUser = async (username: string, password: string, duration: n
 }
 
 // Guardar registro de compra
-const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput, amount: number, plan: { duration: number }, credentials: any) => {
+const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput, amount: number, plan: { duration: number }, hotspotResult: any) => {
 	try {
 		const filename = `internet_${chargeData.id}_${Date.now()}.json`
 		const filepath = path.join(paymentsDir, filename)
 
-		const paymentRecord = {
+		const paymentRecord: any = {
 			transaction_id: chargeData.id,
 			status: chargeData.status,
 			amount: amount,
@@ -169,9 +169,9 @@ const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput,
 				phone_number: customerData.phone_number
 			},
 			credentials: {
-				username: credentials.username,
-				password: credentials.password,
-				expires_at: credentials.expiresAt
+				username: hotspotResult.username,
+				password: hotspotResult.password,
+				expires_at: hotspotResult.expiresAt
 			},
 			created_at: new Date().toISOString(),
 			openpay_response: {
@@ -179,6 +179,11 @@ const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput,
 				status: chargeData.status,
 				amount: chargeData.amount
 			}
+		}
+
+		// Guardar fecha ISO si está disponible
+		if (hotspotResult.expiryDate && hotspotResult.expiryDate instanceof Date) {
+			paymentRecord.credentials.expires_iso = hotspotResult.expiryDate.toISOString()
 		}
 
 		fs.writeFileSync(filepath, JSON.stringify(paymentRecord, null, 2))
@@ -189,6 +194,85 @@ const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput,
 		return null
 	}
 }
+
+// Eliminar usuario Hotspot por nombre (intenta buscar su .id y eliminarlo via REST)
+const deleteHotspotUserByName = async (username: string) => {
+	try {
+		const resp = await mikrotikClient.get('/ip/hotspot/user/print')
+		const users = resp.data
+		if (!Array.isArray(users)) return { success: false, reason: 'no-users-response' }
+
+		const match = users.find((u: any) => u.name === username)
+		if (!match) return { success: false, reason: 'not-found' }
+
+		const id = match['.id'] || match['.id']
+		if (!id) return { success: false, reason: 'no-id' }
+
+		// Intentar eliminar vía DELETE /ip/hotspot/user/{id}
+		try {
+			await mikrotikClient.delete(`/ip/hotspot/user/${encodeURIComponent(id)}`)
+			return { success: true, id }
+		} catch (err) {
+			// Fallback: intentar POST a endpoint remove
+			try {
+				await mikrotikClient.post('/ip/hotspot/user/remove', { id })
+				return { success: true, id, fallback: true }
+			} catch (err2) {
+				return { success: false, reason: 'delete-failed', error: err2 }
+			}
+		}
+	} catch (error) {
+		return { success: false, reason: 'list-failed', error }
+	}
+}
+
+// Barrido periódico: leer registros de pagos y eliminar usuarios expirados
+const sweepExpiredUsers = async () => {
+	try {
+		const files = fs.readdirSync(paymentsDir)
+		const now = new Date()
+
+		for (const file of files) {
+			if (!file.startsWith('internet_') || !file.endsWith('.json')) continue
+			const filepath = path.join(paymentsDir, file)
+			try {
+				const content = fs.readFileSync(filepath, 'utf8')
+				const record = JSON.parse(content)
+				const creds = record.credentials || {}
+
+				if (record.deleted_at) continue // ya procesado
+
+				let expiresAt: Date | null = null
+				if (creds.expires_iso) {
+					expiresAt = new Date(creds.expires_iso)
+				} else if (creds.expires_at) {
+					const parsed = new Date(creds.expires_at)
+					if (!isNaN(parsed.getTime())) expiresAt = parsed
+				}
+
+				if (!expiresAt) continue
+
+				if (expiresAt <= now) {
+					const username = creds.username
+					if (!username) continue
+					const result = await deleteHotspotUserByName(username)
+					record.deleted_at = new Date().toISOString()
+					record.deletion_result = result
+					fs.writeFileSync(filepath, JSON.stringify(record, null, 2))
+					console.log(`Sweeper: processed expired user ${username} (${file})`, result)
+				}
+			} catch (err) {
+				console.error('Sweeper: error processing file', file, err)
+			}
+		}
+	} catch (err) {
+		console.error('Sweeper: failed to read payments directory', err)
+	}
+}
+
+// Iniciar sweeper periódicamente (cada 60 segundos) y ejecutar al arrancar
+setInterval(sweepExpiredUsers, 60 * 1000)
+sweepExpiredUsers().catch(err => console.error('Initial sweeper error', err))
 
 // Endpoint antiguo para pagos genéricos
 app.post('/payments', async (req, res) => {
