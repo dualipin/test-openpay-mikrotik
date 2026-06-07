@@ -115,10 +115,20 @@ const createHotspotUser = async (username: string, password: string, duration: n
 		const minutes = duration % 60
 		const uptime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
 
+		// Seleccionar perfil según la duración (en minutos)
+		const getProfileForDuration = (mins: number) => {
+			if (mins === 1) return '1m'
+			if (mins === 2) return '2m'
+			if (mins === 3) return '3m'
+			return 'default'
+		}
+
+		const profile = getProfileForDuration(duration)
+
 		await mikrotikClient.post('/ip/hotspot/user/add', {
 			name: username,
 			password,
-			profile: 'default',
+			profile,
 			'limit-uptime': uptime
 		})
 

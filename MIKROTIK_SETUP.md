@@ -294,6 +294,42 @@ Test-NetConnection -ComputerName 192.168.1.77 -Port 8728
     limit-uptime=5m
 ```
 
+## Perfiles por velocidad (recomendado para paquetes por minutos)
+
+Si quieres asignar diferentes anchos de banda según la cantidad de minutos comprados (por ejemplo 1m/2m/3m), crea perfiles dedicados con `rate-limit`:
+
+```bash
+
+# Perfil para 1Mbit (nombre: 1m)
+/ip/hotspot/profile/add \
+    name=1m \
+    hotspot-address=10.0.1.1 \
+    login-by=http-chap,cookie \
+    idle-timeout=10m \
+    session-timeout=never \
+    rate-limit=1M/1M
+
+# Perfil para 2Mbit (nombre: 2m)
+/ip/hotspot/profile/add \
+    name=2m \
+    hotspot-address=10.0.1.1 \
+    login-by=http-chap,cookie \
+    idle-timeout=10m \
+    session-timeout=never \
+    rate-limit=2M/2M
+
+# Perfil para 3Mbit (nombre: 3m)
+/ip/hotspot/profile/add \
+    name=3m \
+    hotspot-address=10.0.1.1 \
+    login-by=http-chap,cookie \
+    idle-timeout=10m \
+    session-timeout=never \
+    rate-limit=3M/3M
+```
+
+Luego el backend asignará automáticamente `profile-1M`, `profile-2M` o `profile-3M` según la duración comprada (1, 2 o 3 minutos). Para otras duraciones se usará `default`.
+
 ## 📱 Conexión Cliente
 
 1. Cliente se conecta a WiFi del MikroTik
