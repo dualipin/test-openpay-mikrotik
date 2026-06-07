@@ -125,7 +125,7 @@ const createHotspotUser = async (username: string, password: string, duration: n
 
 		const profile = getProfileForDuration(duration)
 
-		await mikrotikClient.post('/ip/hotspot/user/add', {
+		await mikrotikClient.put('/ip/hotspot/user', {
 			name: username,
 			password,
 			profile,
@@ -138,6 +138,7 @@ const createHotspotUser = async (username: string, password: string, duration: n
 			success: true,
 			username,
 			password,
+			profile,
 			expiresAt: expiryDate.toLocaleString('es-MX'),
 			expiryDate
 		}
@@ -171,6 +172,7 @@ const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput,
 			credentials: {
 				username: hotspotResult.username,
 				password: hotspotResult.password,
+				profile: hotspotResult.profile,
 				expires_at: hotspotResult.expiresAt
 			},
 			created_at: new Date().toISOString(),

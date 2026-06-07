@@ -13,7 +13,7 @@
 ### 1. Crear Usuario Hotspot
 
 ```
-Command: /ip/hotspot/user/add
+REST (backend): PUT /rest/ip/hotspot/user
 Parameters:
   =name=GUEST_1715339445123_ABC123      # Usuario único
   =password=r4nd0mp4ssw0rd              # Contraseña
@@ -24,14 +24,14 @@ Parameters:
 Ejemplo CLI:
 /ip/hotspot/user/add name=test password=pass profile=default disabled=no limit-uptime=300
 
-Ejemplo PowerShell (node-routeros):
-await client.write('/ip/hotspot/user/add', [
-    '=name=GUEST_1715339445123_ABC123',
-    '=password=r4nd0mp4ssw0rd',
-    '=profile=default',
-    '=disabled=no',
-    '=limit-uptime=300'
-]);
+Ejemplo REST:
+await axios.put('/rest/ip/hotspot/user', {
+    name: 'GUEST_1715339445123_ABC123',
+    password: 'r4nd0mp4ssw0rd',
+    profile: 'default',
+    disabled: 'no',
+    'limit-uptime': '5m'
+});
 ```
 
 ### 2. Listar Usuarios Hotspot
