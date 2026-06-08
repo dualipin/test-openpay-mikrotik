@@ -1,0 +1,295 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+ provider = "sqlite"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model Tenant {
+  id   String @id @default(uuid())
+  name String
+
+  users    User[]
+  routers  Router[]
+  profiles Profile[]
+  plans    Plan[]
+  orders   Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Router {
+  id String @id @default(uuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  name String
+
+  host String
+  port Int @default(8728)
+
+  username String
+
+  encryptedPassword String
+
+  status RouterStatus @default(UNKNOWN)
+
+  lastSeenAt DateTime?
+
+  hotspots Hotspot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  networkAccesses NetworkAccess[]
+}
+
+enum RouterStatus {
+  UNKNOWN
+  ONLINE
+  OFFLINE
+}
+
+model Hotspot {
+  id String @id @default(uuid())
+
+  routerId String
+  router   Router @relation(fields: [routerId], references: [id])
+
+  name String
+
+  plans Plan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([routerId])
+}
+
+model Profile {
+  id String @id @default(uuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  name String
+
+  uploadSpeed   Int
+  downloadSpeed Int
+
+  sharedUsers Int? @default(1)
+
+  sessionTimeout Int?
+  idleTimeout    Int?
+
+  metadata Json?
+
+  plans Plan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model Plan {
+  id String @id @default(uuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  hotspotId String?
+  hotspot   Hotspot? @relation(fields: [hotspotId], references: [id])
+
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id])
+
+  name String
+
+  price Decimal
+
+  duration Int
+
+  durationUnit DurationUnit
+
+  accessType AccessType
+
+  enabled Boolean @default(true)
+
+  services Service[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([profileId])
+  @@index([hotspotId])
+}
+
+enum DurationUnit {
+  MINUTE
+  HOUR
+  DAY
+  MONTH
+}
+
+enum AccessType {
+  HOTSPOT
+  PPPOE
+  DHCP
+  STATIC_IP
+}
+
+model Service {
+  id String @id @default(uuid())
+
+  planId String
+  plan   Plan @relation(fields: [planId], references: [id])
+
+  status ServiceStatus @default(PENDING)
+
+  activatedAt DateTime?
+  expiresAt   DateTime?
+
+  networkAccess NetworkAccess?
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@index([status])
+}
+
+enum ServiceStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  DISABLED
+}
+
+model NetworkAccess {
+  id String @id @default(uuid())
+
+  serviceId String @unique
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  accessType AccessType
+
+  routerId String?
+  router   Router? @relation(fields: [routerId], references: [id])
+
+  username String?
+  password String?
+
+  macAddress String?
+  ipAddress  String?
+
+  /// ID del recurso en MikroTik
+  remoteId String?
+
+  /// Referencia externa para futuras integraciones
+  externalReference String?
+
+  status AccessStatus @default(PENDING)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([routerId])
+  @@index([accessType])
+  @@index([status])
+  @@index([username])
+}
+
+enum AccessStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  DISABLED
+}
+
+model Order {
+  id String @id @default(uuid())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
+
+  amount Decimal
+
+  status OrderStatus @default(PENDING)
+
+  payment Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([serviceId])
+  @@index([status])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROVISIONED
+  FAILED
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  orderId String @unique
+  order   Order @relation(fields: [orderId], references: [id])
+
+  provider PaymentProvider
+
+  externalId String?
+
+  status PaymentStatus @default(PENDING)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([provider])
+}
+
+enum PaymentProvider {
+  OpenPay
+  Stripe
+  MercadoPago
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
