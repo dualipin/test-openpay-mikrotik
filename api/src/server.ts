@@ -188,14 +188,15 @@ const createHotspotUser = async (username: string, password: string, speedLimit?
 		const payload: Record<string, string> = {
 			name: username,
 			password,
-			profile: HOTSPOT_PROFILE_NAME
+			profile: HOTSPOT_PROFILE_NAME,
+			disabled: 'no'
 		}
 
 		if (speedLimit) {
 			payload['rate-limit'] = speedLimit
 		}
 
-		await mikrotikClient.put('/ip/hotspot/user', payload)
+		await mikrotikClient.post('/ip/hotspot/user/add', payload)
 
 		console.log(`Usuario Hotspot creado via REST: ${username}`)
 
