@@ -49,6 +49,51 @@ const mikrotikClient = axios.create({
 		: undefined
 })
 
+const HOTSPOT_PROFILE_NAME = 'plan-dinamico'
+const HOTSPOT_PROFILE_ON_LOGIN =
+	':local usuarioActual $user; :local tiempoLimite [/ip hotspot user get [find name=$usuarioActual] limit-uptime]; :if ($tiempoLimite != "") do={ :local userScript "/ip hotspot user remove [find name=$usuarioActual]; /system scheduler remove [find name=$usuarioActual];"; /system scheduler add name=$usuarioActual interval=$tiempoLimite on-event=$userScript comment="Eliminar ficha corrido"; }'
+
+const normalizeArray = (value: unknown): Array<Record<string, unknown>> => {
+	if (Array.isArray(value)) {
+		return value as Array<Record<string, unknown>>
+	}
+
+	if (value && typeof value === 'object') {
+		return [value as Record<string, unknown>]
+	}
+
+	return []
+}
+
+const ensureHotspotProfile = async () => {
+	const response = await mikrotikClient.get('/ip/hotspot/user/profile')
+	const profiles = normalizeArray(response.data)
+	const existingProfile = profiles.find((profile) => profile.name === HOTSPOT_PROFILE_NAME)
+
+	if (existingProfile) {
+		console.log(`[MikroTik] Perfil '${HOTSPOT_PROFILE_NAME}' ya está operativo.`)
+		return
+	}
+
+	console.log(`[MikroTik] Perfil '${HOTSPOT_PROFILE_NAME}' no encontrado. Creándolo ahora...`)
+	await mikrotikClient.post('/ip/hotspot/user/profile', {
+		name: HOTSPOT_PROFILE_NAME,
+		'on-login': HOTSPOT_PROFILE_ON_LOGIN
+	})
+	console.log(`[MikroTik] Perfil '${HOTSPOT_PROFILE_NAME}' configurado automáticamente.`)
+}
+
+export const initializeMikrotik = async () => {
+	console.log('[MikroTik] Verificando entorno en el router...')
+
+	try {
+		await ensureHotspotProfile()
+	} catch (error) {
+		console.error('[MikroTik Error] No se pudo inicializar la configuración automática:', error)
+		throw error
+	}
+}
+
 // Crear carpeta de pagos si no existe
 const paymentsDir = path.join(process.cwd(), 'payments')
 if (!fs.existsSync(paymentsDir)) {
@@ -115,20 +160,10 @@ const createHotspotUser = async (username: string, password: string, duration: n
 		const minutes = duration % 60
 		const uptime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
 
-		// Seleccionar perfil según la duración (en minutos)
-		const getProfileForDuration = (mins: number) => {
-			if (mins === 1) return '1m'
-			if (mins === 2) return '2m'
-			if (mins === 3) return '3m'
-			return 'default'
-		}
-
-		const profile = getProfileForDuration(duration)
-
 		await mikrotikClient.put('/ip/hotspot/user', {
 			name: username,
 			password,
-			profile,
+			profile: HOTSPOT_PROFILE_NAME,
 			'limit-uptime': uptime
 		})
 
@@ -138,7 +173,7 @@ const createHotspotUser = async (username: string, password: string, duration: n
 			success: true,
 			username,
 			password,
-			profile,
+			profile: HOTSPOT_PROFILE_NAME,
 			expiresAt: expiryDate.toLocaleString('es-MX'),
 			expiryDate
 		}
