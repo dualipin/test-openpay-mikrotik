@@ -50,8 +50,41 @@ const mikrotikClient = axios.create({
 })
 
 const HOTSPOT_PROFILE_NAME = 'plan-dinamico'
-const HOTSPOT_PROFILE_ON_LOGIN =
-	':local usuarioActual $user; :local tiempoLimite [/ip hotspot user get [find name=$usuarioActual] limit-uptime]; :if ($tiempoLimite != "") do={ :local userScript "/ip hotspot user remove [find name=$usuarioActual]; /system scheduler remove [find name=$usuarioActual];"; /system scheduler add name=$usuarioActual interval=$tiempoLimite on-event=$userScript comment="Eliminar ficha corrido"; }'
+
+type HotspotSession = {
+	user?: string
+	['.id']?: string
+}
+
+type InternetVoucherRecord = {
+	transaction_id: string
+	status: 'PENDIENTE' | 'ACTIVO' | 'EXPIRADO'
+	amount: number
+	currency: string
+	plan: {
+		duration: number
+		unit: 'minutes'
+	}
+	customer: CustomerInput
+	credentials: {
+		username: string
+		password: string
+		profile: string
+		expires_at?: string | null
+		expires_iso?: string | null
+	}
+	started_at?: string | null
+	expires_at?: string | null
+	deleted_at?: string | null
+	created_at: string
+	openpay_response: {
+		id: string
+		status: string
+		amount: number
+	}
+	used_at?: string | null
+	deletion_result?: unknown
+}
 
 const normalizeArray = (value: unknown): Array<Record<string, unknown>> => {
 	if (Array.isArray(value)) {
@@ -77,8 +110,7 @@ const ensureHotspotProfile = async () => {
 
 	console.log(`[MikroTik] Perfil '${HOTSPOT_PROFILE_NAME}' no encontrado. Creándolo ahora...`)
 	await mikrotikClient.post('/ip/hotspot/user/profile', {
-		name: HOTSPOT_PROFILE_NAME,
-		'on-login': HOTSPOT_PROFILE_ON_LOGIN
+		name: HOTSPOT_PROFILE_NAME
 	})
 	console.log(`[MikroTik] Perfil '${HOTSPOT_PROFILE_NAME}' configurado automáticamente.`)
 }
@@ -122,6 +154,7 @@ type InternetPaymentRequest = {
 	amount: number
 	plan_id: string
 	duration: number // en minutos
+	speedLimit?: string
 	source_id: string
 	device_session_id: string
 	currency?: string
@@ -150,22 +183,19 @@ const generateCredentials = () => {
 }
 
 // Crear usuario Hotspot en MikroTik
-const createHotspotUser = async (username: string, password: string, duration: number) => {
+const createHotspotUser = async (username: string, password: string, speedLimit?: string) => {
 	try {
-		// Calcular fecha de expiración (duración en minutos)
-		const expiryDate = new Date()
-		expiryDate.setMinutes(expiryDate.getMinutes() + duration)
-
-		const hours = Math.floor(duration / 60)
-		const minutes = duration % 60
-		const uptime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
-
-		await mikrotikClient.put('/ip/hotspot/user', {
+		const payload: Record<string, string> = {
 			name: username,
 			password,
-			profile: HOTSPOT_PROFILE_NAME,
-			'limit-uptime': uptime
-		})
+			profile: HOTSPOT_PROFILE_NAME
+		}
+
+		if (speedLimit) {
+			payload['rate-limit'] = speedLimit
+		}
+
+		await mikrotikClient.put('/ip/hotspot/user', payload)
 
 		console.log(`Usuario Hotspot creado via REST: ${username}`)
 
@@ -174,8 +204,7 @@ const createHotspotUser = async (username: string, password: string, duration: n
 			username,
 			password,
 			profile: HOTSPOT_PROFILE_NAME,
-			expiresAt: expiryDate.toLocaleString('es-MX'),
-			expiryDate
+			rateLimit: speedLimit ?? null
 		}
 	} catch (error) {
 		console.error('Error creating Hotspot user:', error)
@@ -189,9 +218,9 @@ const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput,
 		const filename = `internet_${chargeData.id}_${Date.now()}.json`
 		const filepath = path.join(paymentsDir, filename)
 
-		const paymentRecord: any = {
+		const paymentRecord: InternetVoucherRecord = {
 			transaction_id: chargeData.id,
-			status: chargeData.status,
+			status: 'PENDIENTE',
 			amount: amount,
 			currency: chargeData.currency || 'MXN',
 			plan: {
@@ -208,7 +237,8 @@ const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput,
 				username: hotspotResult.username,
 				password: hotspotResult.password,
 				profile: hotspotResult.profile,
-				expires_at: hotspotResult.expiresAt
+				expires_at: null,
+				expires_iso: null
 			},
 			created_at: new Date().toISOString(),
 			openpay_response: {
@@ -216,11 +246,6 @@ const saveInternetPaymentRecord = (chargeData: any, customerData: CustomerInput,
 				status: chargeData.status,
 				amount: chargeData.amount
 			}
-		}
-
-		// Guardar fecha ISO si está disponible
-		if (hotspotResult.expiryDate && hotspotResult.expiryDate instanceof Date) {
-			paymentRecord.credentials.expires_iso = hotspotResult.expiryDate.toISOString()
 		}
 
 		fs.writeFileSync(filepath, JSON.stringify(paymentRecord, null, 2))
@@ -248,24 +273,45 @@ const deleteHotspotUserByName = async (username: string) => {
 		// Intentar eliminar vía DELETE /ip/hotspot/user/{id}
 		try {
 			await mikrotikClient.delete(`/ip/hotspot/user/${encodeURIComponent(id)}`)
-			return { success: true, id }
 		} catch (err) {
 			// Fallback: intentar POST a endpoint remove
 			try {
 				await mikrotikClient.post('/ip/hotspot/user/remove', { id })
-				return { success: true, id, fallback: true }
 			} catch (err2) {
 				return { success: false, reason: 'delete-failed', error: err2 }
 			}
 		}
+
+		try {
+			const activeResp = await mikrotikClient.get('/ip/hotspot/active/print')
+			const activeSessions = activeResp.data
+			if (Array.isArray(activeSessions)) {
+				const activeMatch = activeSessions.find((session: HotspotSession) => session.user === username)
+				if (activeMatch && activeMatch['.id']) {
+					await mikrotikClient.delete(`/ip/hotspot/active/${encodeURIComponent(activeMatch['.id'])}`)
+				}
+			}
+		} catch (err) {
+			console.warn(`[MikroTik] No se pudo cerrar la sesión activa de ${username}:`, err)
+		}
+
+		return { success: true, id }
 	} catch (error) {
 		return { success: false, reason: 'list-failed', error }
 	}
 }
 
-// Barrido periódico: leer registros de pagos y eliminar usuarios expirados
+// Barrido periódico: detectar primer login y eliminar usuarios expirados
 const sweepExpiredUsers = async () => {
 	try {
+		const activeResponse = await mikrotikClient.get('/ip/hotspot/active/print')
+		const activeSessions = normalizeArray(activeResponse.data) as HotspotSession[]
+		const activeUsers = new Set(
+			activeSessions
+				.map((session) => session.user)
+				.filter((user): user is string => typeof user === 'string' && user.length > 0)
+		)
+
 		const files = fs.readdirSync(paymentsDir)
 		const now = new Date()
 
@@ -274,25 +320,41 @@ const sweepExpiredUsers = async () => {
 			const filepath = path.join(paymentsDir, file)
 			try {
 				const content = fs.readFileSync(filepath, 'utf8')
-				const record = JSON.parse(content)
+				const record = JSON.parse(content) as InternetVoucherRecord
 				const creds = record.credentials || {}
 
 				if (record.deleted_at) continue // ya procesado
 
+				if (record.status === 'PENDIENTE' && activeUsers.has(creds.username)) {
+					const startedAt = now.toISOString()
+					const expiresAt = new Date(now.getTime() + record.plan.duration * 60000).toISOString()
+					record.status = 'ACTIVO'
+					record.started_at = startedAt
+					record.expires_at = expiresAt
+					record.credentials.expires_at = expiresAt
+					record.credentials.expires_iso = expiresAt
+					fs.writeFileSync(filepath, JSON.stringify(record, null, 2))
+					console.log(`Sweeper: detected first login for ${creds.username} (${file})`)
+				}
+
 				let expiresAt: Date | null = null
-				if (creds.expires_iso) {
+				if (record.expires_at) {
+					const parsed = new Date(record.expires_at)
+					if (!isNaN(parsed.getTime())) expiresAt = parsed
+				} else if (creds.expires_iso) {
 					expiresAt = new Date(creds.expires_iso)
 				} else if (creds.expires_at) {
 					const parsed = new Date(creds.expires_at)
 					if (!isNaN(parsed.getTime())) expiresAt = parsed
 				}
 
-				if (!expiresAt) continue
+				if (!expiresAt || record.status !== 'ACTIVO') continue
 
 				if (expiresAt <= now) {
 					const username = creds.username
 					if (!username) continue
 					const result = await deleteHotspotUserByName(username)
+					record.status = 'EXPIRADO'
 					record.deleted_at = new Date().toISOString()
 					record.deletion_result = result
 					fs.writeFileSync(filepath, JSON.stringify(record, null, 2))
@@ -404,7 +466,7 @@ app.post('/internet-payment', async (req, res) => {
 				const { username, password } = generateCredentials()
 
 				// Crear usuario Hotspot en MikroTik
-				const hotspotResult = await createHotspotUser(username, password, body.duration)
+				const hotspotResult = await createHotspotUser(username, password, body.speedLimit)
 
 				// 3. Guardar registro de compra
 				saveInternetPaymentRecord(chargeObj, body.customer, body.amount, { duration: body.duration }, hotspotResult)
@@ -416,7 +478,7 @@ app.post('/internet-payment', async (req, res) => {
 					credentials: {
 						username: hotspotResult.username,
 						password: hotspotResult.password,
-						expiresAt: hotspotResult.expiresAt
+						status: 'PENDIENTE'
 					},
 					message: 'Internet access activated successfully'
 				})
