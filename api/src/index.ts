@@ -2,7 +2,7 @@ import { env } from '@/common/dotenv'
 import { app, initializeMikrotik } from './server'
 
 const start = async () => {
-  await initializeMikrotik()
+  // await initializeMikrotik()
 
   app.listen(env.PORT, () => {
     console.log(`Server is running on port ${env.PORT}`)
