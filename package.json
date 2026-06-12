@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "turbo run dev",
     "build": "turbo build",
     "dev:api": "turbo run dev --filter=api",
     "dev:portal": "turbo run dev --filter=payment-portal",

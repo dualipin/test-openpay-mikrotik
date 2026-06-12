@@ -6,13 +6,13 @@
 				"./src/*"
 			]
 		},
-		"types": ["node"],
-		"module": "nodenext",
-		"moduleResolution": "nodenext",
+		"types": [
+			"node"
+		],
 		"outDir": "./dist",
-		"rootDir": "./src",
+		"rootDir": ".",
 	},
 	"include": [
-		"src/**/*"
-	],
+		"src"
+	]
 }
