@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Abriendo Portal...</title>
+</head>
+<body>
+    <input type="hidden" id="linkLoginOnly" value="$(link-login-only)">
+    <input type="hidden" id="dst" value="$(dst)">
+    <input type="hidden" id="mac" value="$(mac)">
+
+    <p>Redirigiendo al portal...</p>
+
+    <script>
+        // Leemos los valores directamente del DOM, evitando que el parser de MikroTik interfiera con el JS
+        const linkLoginOnly = document.getElementById("linkLoginOnly").value;
+        let dst           = document.getElementById("dst").value;
+        const mac           = document.getElementById("mac").value;
+
+        if (!dst || dst.includes("$")) {
+            dst = "http://google.com";
+        }
+
+        const URL_REACT = "https://mikrotik-web-test.vercel.app"; 
+
+        // Redirección limpia y codificada de forma segura
+        window.location.href = URL_REACT + "/?res=" + encodeURIComponent(linkLoginOnly) + 
+                                           "&dst=" + encodeURIComponent(dst) + 
+                                           "&mac=" + encodeURIComponent(mac);
+    </script>
+</body>
+</html>
