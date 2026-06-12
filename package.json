@@ -13,11 +13,12 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "dev:api": "turbo run dev --filter=api",
-    "dev:payment": "turbo run dev --filter=payment-gateway",
+    "dev:portal": "turbo run dev --filter=payment-portal",
     "dev:admin": "turbo run dev --filter=admin",
     "build:api": "turbo run build --filter=api"
   },
   "devDependencies": {
     "turbo": "^2.9.18"
-  }
+  },
+  "packageManager": "npm@11.2.0"
 }
