@@ -1,15 +1,23 @@
 {
-  "name": "test-openpay-mikrotik",
+  "name": "makrowisp",
   "private": true,
-  "version": "1.0.0",
-  "description": "",
+  "author": {
+    "name": "Martin Sanchez",
+    "url": "https://keysoft.com.mx"
+  },
   "workspaces": [
-    "api",
-    "web"
+    "apps/*",
+    "packages/*"
   ],
-  "scripts": {},
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module"
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "dev:api": "turbo run dev --filter=api",
+    "dev:web": "turbo run dev --filter=pasarela",
+    "dev:admin": "turbo run dev --filter=admin",
+    "build:api": "turbo run build --filter=api"
+  },
+  "devDependencies": {
+    "turbo": "^2.9.18"
+  }
 }
