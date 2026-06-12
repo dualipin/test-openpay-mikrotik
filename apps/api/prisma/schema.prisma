@@ -4,12 +4,12 @@ generator client {
 }
 
 datasource db {
- provider = "sqlite"
+  provider = "sqlite"
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id           String @id @default(uuid())
+  email        String @unique
   passwordHash String
 
   tenantId String
@@ -44,7 +44,7 @@ model Router {
   name String
 
   host String
-  port Int @default(8728)
+  port Int    @default(8728)
 
   username String
 
@@ -56,11 +56,11 @@ model Router {
 
   hotspots Hotspot[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  networkAccesses NetworkAccess[]
 
   @@index([tenantId])
-  networkAccesses NetworkAccess[]
 }
 
 enum RouterStatus {
@@ -163,7 +163,7 @@ model Service {
   id String @id @default(uuid())
 
   planId String
-  plan   Plan @relation(fields: [planId], references: [id])
+  plan   Plan   @relation(fields: [planId], references: [id])
 
   status ServiceStatus @default(PENDING)
 
@@ -191,7 +191,7 @@ enum ServiceStatus {
 model NetworkAccess {
   id String @id @default(uuid())
 
-  serviceId String @unique
+  serviceId String  @unique
   service   Service @relation(fields: [serviceId], references: [id])
 
   accessType AccessType
@@ -265,7 +265,7 @@ model Payment {
   id String @id @default(uuid())
 
   orderId String @unique
-  order   Order @relation(fields: [orderId], references: [id])
+  order   Order  @relation(fields: [orderId], references: [id])
 
   provider PaymentProvider
 
