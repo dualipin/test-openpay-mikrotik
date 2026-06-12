@@ -1,0 +1,32 @@
+name: Deploy API Rest to VM
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/api/**"
+      - "packages/**"
+      - "package.json"
+      - "turbo.json"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: 22
+          script: |
+            source ~/.bashrc
+            cd ${{ secrets.VM_PROJECT_PATH }}
+            git pull origin main
+            npm ci
+            npm run build:api
+            ln -sfn ${{secrets.VM_SHARED_SECRET_PATH}} apps/api/dist/.env
+            pm2 restart makrowisp-api || pm2 start apps/api/dist/index.js --name makrowisp-api
