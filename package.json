@@ -13,7 +13,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "dev:api": "turbo run dev --filter=api",
-    "dev:web": "turbo run dev --filter=payment-gateway",
+    "dev:payment": "turbo run dev --filter=payment-gateway",
     "dev:admin": "turbo run dev --filter=admin",
     "build:api": "turbo run build --filter=api"
   },
